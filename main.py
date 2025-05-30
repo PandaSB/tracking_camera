@@ -1,11 +1,14 @@
+import io
+import cv2
 import time
 import threading
-from PCA9685 import PCA9685
 import ultralytics
+from PCA9685 import PCA9685
 from ultralytics import YOLO
-from huggingface_hub import hf_hub_download
-import cv2
+from sixel import SixelWriter
 import matplotlib.pyplot as plt
+from huggingface_hub import hf_hub_download
+
 
 default_horizontal_angle = 120
 default_vertical_angle = 110
@@ -160,6 +163,10 @@ if __name__ == "__main__":
         # Using cv2.imwrite() method
         # Saving the image
         cv2.imwrite(filename, frame)
+        im_bytes = cv2.imencode(".png",  frame,)[1].tobytes() 
+        mem_file = io.BytesIO(im_bytes)
+        w = SixelWriter()
+        w.draw(mem_file)
     
     print("Exiting now. Goodbye!")
     exit(0)
