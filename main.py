@@ -81,81 +81,89 @@ if __name__ == "__main__":
 
     videoCap = cv2.VideoCapture(1)
     countloop = 0
+    frame_counter = 0
+    frame_skip_rate = 2
     while True:
 
         ret, frame = videoCap.read()
-        frame = cv2.resize(frame, (640, 480))
+        frame = cv2.resize(frame, (320, 240))
+        frame_counter += 1
         if not ret:
             exit("Failed to capture video frame. Please check the camera connection.")
-        print("Video frame captured successfully.")
-        results = ncnn_model(frame)
 
-        countloop += 1
-        if countloop > 10:
-            countloop = 0
-            print("Resetting position to default.")
-            horizontal_angle = default_horizontal_angle    # Default horizontal angle
-            vertical_angle = default_vertical_angle   # Default vertical angle
-            set_position(horizontal_angle, vertical_angle)
+        if frame_counter % frame_skip_rate == 0:
+            print("Video frame captured successfully.")
+            start_time = time.time()
+            results = ncnn_model(frame)
+            end_time = time.time()
+            print(f"Inference time: {end_time - start_time:.4f} seconds")
+
+            countloop += 1
+            if countloop > 10:
+                countloop = 0
+                print("Resetting position to default.")
+                horizontal_angle = default_horizontal_angle    # Default horizontal angle
+                vertical_angle = default_vertical_angle   # Default vertical angle
+                set_position(horizontal_angle, vertical_angle)
 
 
-        for result in results:
-        # get the classes names
-            classes_names = result.names
+            for result in results:
+            # get the classes names
+                classes_names = result.names
 
-            # iterate over each box
-            for box in result.boxes:
-                # check if confidence is greater than 40 percent
-                if box.conf[0] > 0.4:
-                    # get coordinates
-                    [x1, y1, x2, y2] = box.xyxy[0]
-                    # convert to int
-                    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                # iterate over each box
+                for box in result.boxes:
+                    # check if confidence is greater than 40 percent
+                    if box.conf[0] > 0.4:
+                        # get coordinates
+                        [x1, y1, x2, y2] = box.xyxy[0]
+                        # convert to int
+                        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
 
-                    # get the class
-                    cls = int(box.cls[0])
+                        # get the class
+                        cls = int(box.cls[0])
 
-                    # get the class name
-                    class_name = classes_names[cls]
+                        # get the class name
+                        class_name = classes_names[cls]
 
-                    # get the respective colour
-                    colour = getColours(cls)
+                        # get the respective colour
+                        colour = getColours(cls)
 
-                    # draw the rectangle
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), colour, 2)
+                        # draw the rectangle
+                        cv2.rectangle(frame, (x1, y1), (x2, y2), colour, 2)
 
-                    # put the class name and confidence on the image
-                    cv2.putText(frame, f'{classes_names[int(box.cls[0])]} {box.conf[0]:.2f}', (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1, colour, 2)
-                    # calculate the center of the box
-                    center_x = (x1 + x2) // 2
-                    center_y = (y1 + y2) // 2
+                        # put the class name and confidence on the image
+                        cv2.putText(frame, f'{classes_names[int(box.cls[0])]} {box.conf[0]:.2f}', (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1, colour, 2)
+                        # calculate the center of the box
+                        center_x = (x1 + x2) // 2
+                        center_y = (y1 + y2) // 2
 
-                    offset_x = center_x - (frame.shape[1] // 2)
-                    offset_y = center_y - (frame.shape[0] // 2)
+                        offset_x = center_x - (frame.shape[1] // 2)
+                        offset_y = center_y - (frame.shape[0] // 2)
 
-                    # draw the center point
-                    cv2.circle(frame, (center_x, center_y), 5, colour, -1)
+                        # draw the center point
+                        cv2.circle(frame, (center_x, center_y), 5, colour, -1)
 
-                    if (class_name == "person"):
-                        # print the class name
-                        print(f"Detected class: {class_name}")
-                        # print the coordinates of the box
-                        print(f"Coordinates: ({x1}, {y1}), ({x2}, {y2})")
-                        # print the center coordinates
-                        print(f"Center of {class_name}: ({center_x}, {center_y})")
-                        # print the offset
-                        print(f"Offset from center: ({offset_x}, {offset_y})")
-                        if (offset_x > 10):
-                            horizontal_angle = min(135, horizontal_angle + 2)
-                        elif (offset_x < -10):
-                            horizontal_angle = max(45, horizontal_angle - 2)
-                        if (offset_y > 10):
-                            vertical_angle = min(135, vertical_angle - 1)
-                        elif (offset_y < -10):
-                            vertical_angle = max(45, vertical_angle + 1)
-                        set_position(horizontal_angle, vertical_angle)
-                        print(f"Object detected: {class_name} at ({x1}, {y1}), ({x2}, {y2}) with confidence {box.conf[0]:.2f}.")
-                        countloop = 0 
+                        if (class_name == "person"):
+                            # print the class name
+                            print(f"Detected class: {class_name}")
+                            # print the coordinates of the box
+                            print(f"Coordinates: ({x1}, {y1}), ({x2}, {y2})")
+                            # print the center coordinates
+                            print(f"Center of {class_name}: ({center_x}, {center_y})")
+                            # print the offset
+                            print(f"Offset from center: ({offset_x}, {offset_y})")
+                            if (offset_x > 10):
+                                horizontal_angle = min(135, horizontal_angle + 2)
+                            elif (offset_x < -10):
+                                horizontal_angle = max(45, horizontal_angle - 2)
+                            if (offset_y > 10):
+                                vertical_angle = min(135, vertical_angle - 1)
+                            elif (offset_y < -10):
+                                vertical_angle = max(45, vertical_angle + 1)
+                            set_position(horizontal_angle, vertical_angle)
+                            print(f"Object detected: {class_name} at ({x1}, {y1}), ({x2}, {y2}) with confidence {box.conf[0]:.2f}.")
+                            countloop = 0
 
                     
         filename = 'savedImage.jpg'
